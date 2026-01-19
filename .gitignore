@@ -20,3 +20,6 @@ specs/
 
 # archives
 archives/
+
+# Internal
+_private/

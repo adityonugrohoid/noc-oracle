@@ -5,8 +5,19 @@
 ![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
 ![RAG](https://img.shields.io/badge/architecture-RAG-blueviolet.svg)
 ![AI](https://img.shields.io/badge/model-gemini--2.0--flash-orange.svg)
+![MVP](https://img.shields.io/badge/readiness-mvp-yellow.svg)
 
 > **"The Fix" for Alert Fatigue.** A Retrieval-Augmented Generation (RAG) system that maps specific Telecom Error Codes to exact repair procedures using context-aware semantic search.
+
+## Production Readiness
+
+**Level: MVP**
+
+This system demonstrates production-focused RAG architecture with:
+- **Hybrid search implementation** combining semantic vector search with keyword boosting
+- **Context-aware chunking** using MarkdownHeaderTextSplitter to preserve error-solution relationships
+- **Strict context enforcement** in LLM prompts to prevent hallucination
+- **Hallucination risk comparison** feature demonstrating RAG value
 
 ## ⚡ The Problem: Hallucinations in Ops
 Field Engineers cannot rely on generic LLMs (ChatGPT/Gemini) for troubleshooting because they hallucinate commands. A generic model might invent a `reset-network` command that destroys the config. Engineers need **exact, verified procedures** from the official manual.
@@ -117,6 +128,21 @@ pytest tests/
 pytest tests/ -v
 ```
 
+## Notable Code
+
+This repository demonstrates sophisticated RAG implementation patterns. See [NOTABLE_CODE.md](NOTABLE_CODE.md) for detailed code examples highlighting:
+
+- Hybrid search with keyword boosting for exact code matching
+- Context-aware chunking preserving error-solution relationships
+- Strict context enforcement preventing LLM hallucination
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Author
+
+**Adityo Nugroho**  
+- Portfolio: https://adityonugrohoid.github.io  
+- GitHub: https://github.com/adityonugrohoid  
+- LinkedIn: https://www.linkedin.com/in/adityonugrohoid/
