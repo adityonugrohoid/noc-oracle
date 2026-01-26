@@ -1,23 +1,13 @@
 # NOC-Oracle: Autonomous RAG Runbook
 
-> 🔺 **Part of the [TRINITY Project](../README.md)** - An end-to-end AI-powered Network Operations Suite
-
 ![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
 ![RAG](https://img.shields.io/badge/architecture-RAG-blueviolet.svg)
 ![AI](https://img.shields.io/badge/model-gemini--2.0--flash-orange.svg)
-![MVP](https://img.shields.io/badge/readiness-mvp-yellow.svg)
+![TRINITYProject](https://img.shields.io/badge/project-TRINITY-blueviolet.svg)
 
-> **"The Fix" for Alert Fatigue.** A Retrieval-Augmented Generation (RAG) system that maps specific Telecom Error Codes to exact repair procedures using context-aware semantic search.
+**"The Fix" for Alert Fatigue.** A Retrieval-Augmented Generation (RAG) system that maps specific Telecom Error Codes to exact repair procedures using context-aware semantic search.
 
-## Production Readiness
-
-**Level: MVP**
-
-This system demonstrates production-focused RAG architecture with:
-- **Hybrid search implementation** combining semantic vector search with keyword boosting
-- **Context-aware chunking** using MarkdownHeaderTextSplitter to preserve error-solution relationships
-- **Strict context enforcement** in LLM prompts to prevent hallucination
-- **Hallucination risk comparison** feature demonstrating RAG value
+> 🔗 **Part of the TRINITY Project** | An end-to-end AI-powered Network Operations Suite
 
 ## ⚡ The Problem: Hallucinations in Ops
 Field Engineers cannot rely on generic LLMs (ChatGPT/Gemini) for troubleshooting because they hallucinate commands. A generic model might invent a `reset-network` command that destroys the config. Engineers need **exact, verified procedures** from the official manual.

@@ -1,7 +1,5 @@
 # Notable Code: NOC Oracle
 
-**Production Readiness Level:** MVP
-
 This document highlights key code sections that demonstrate the technical strengths and architectural patterns implemented in this RAG system.
 
 ## Overview
