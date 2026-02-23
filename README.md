@@ -63,7 +63,7 @@ graph LR
 
 ### 2. Retrieval: Hybrid Search (Fuzzy Keyword Boosting)
 * **Decision:** Implemented a regex-based booster layer before the vector search.
-* **Reasoning:** Pure semantic search often fails on specific alphanumeric codes (e.g., `s304` vs `S-304`). We added a logic layer that detects error codes in the query (case-insensitive) and forces the matching chunk to **Rank #1**, guaranteeing retrieval accuracy even with "sloppy" user input.
+* **Reasoning:** Pure semantic search often fails on specific alphanumeric codes (e.g., `s304` vs `S-304`). We added a logic layer that detects error codes in the query (case-insensitive) and forces the matching chunk to **Rank #1**, achieving high retrieval accuracy even with "sloppy" user input.
 
 ### 3. Trust Architecture: Source Citation & Risk Toggle
 * **Decision:** The UI enforces a split-view layout: "Suggested Fix" (Left) vs. "Source Context" (Right), plus an optional "Hallucination Risk" comparison.
