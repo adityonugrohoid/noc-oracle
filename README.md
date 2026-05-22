@@ -1,138 +1,234 @@
-# NOC-Oracle: Autonomous RAG Runbook
+<div align="center">
 
-![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
-![RAG](https://img.shields.io/badge/architecture-RAG-blueviolet.svg)
-![AI](https://img.shields.io/badge/model-gemini--2.0--flash-orange.svg)
-![TRINITYProject](https://img.shields.io/badge/project-TRINITY-blueviolet.svg)
+# NOC-Oracle
 
-**"The Fix" for Alert Fatigue.** A Retrieval-Augmented Generation (RAG) system that maps specific Telecom Error Codes to exact repair procedures using context-aware semantic search.
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> 🔗 **Part of the TRINITY Project** | An end-to-end AI-powered Network Operations Suite
+**Telecom runbook RAG engine mapping error codes to verified procedures via hybrid search and Gemini 2.0 Flash.**
 
-## ⚡ The Problem: Hallucinations in Ops
-Field Engineers cannot rely on generic LLMs (ChatGPT/Gemini) for troubleshooting because they hallucinate commands. A generic model might invent a `reset-network` command that destroys the config. Engineers need **exact, verified procedures** from the official manual.
+[Getting Started](#getting-started) | [Usage](#usage) | [Architecture](#architecture)
 
-## 🛡️ The Solution
-**NOC-Oracle** ingests technical manuals using a **Context-Aware Chunking Strategy**. It doesn't just read text; it understands the hierarchy of technical documentation, ensuring that "Error S-304" is mathematically linked to its specific "Resolution Procedure."
+</div>
 
-**New Feature: Hallucination Trap** The dashboard includes a "Show Hallucination Risk" toggle. This runs a side-by-side comparison:
-* **Left (Generic AI):** Shows what a standard LLM *would* have guessed (often plausible but dangerous).
-* **Right (NOC-Oracle):** Shows the RAG-verified answer sourced strictly from the manual.
+---
 
-## 📸 Interface Modes
+## Table of Contents
 
-### 1. Standard Mode: The Fix
-Delivers the verified procedure with source citations.
-![Standard View](assets/noc_oracle_screenshot.png)
+- [The Problem](#the-problem)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Demo](#demo)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+- [Usage](#usage)
+- [Architectural Decisions](#architectural-decisions)
+- [Project Structure](#project-structure)
+- [Testing](#testing)
+- [Known Issues](#known-issues)
+- [Related Projects](#related-projects)
+- [License](#license)
+- [Author](#author)
 
-### 2. Risk Assessment Mode: The Reality Check
-Demonstrates why RAG is necessary by exposing the "confident lies" of ungrounded models.
-![Hallucination Risk View](assets/noc_oracle_with_hall_screenshot.png)
+## The Problem
 
-## System Architecture
+### Alert Fatigue in NOC Operations
+
+Field engineers troubleshooting telecom alarms cannot rely on generic LLMs: a model without grounding in the specific device manual will invent plausible-sounding commands that can corrupt live configuration. Engineers need exact, verified procedures tied to specific error codes like `S-304` or `E-101`.
+
+### The Solution
+
+NOC-Oracle ingests the device manual with context-aware header-based chunking, stores enriched embeddings in ChromaDB, and retrieves with a hybrid search layer that prioritizes exact error code matches. A Streamlit dashboard surfaces the RAG-verified answer alongside the raw source chunks, and optionally runs a side-by-side hallucination comparison against an ungrounded baseline.
+
+## Features
+
+- **Context-aware chunking** - `MarkdownHeaderTextSplitter` preserves the parent header (category + error code) in each embedded chunk, keeping error codes mathematically linked to their resolution steps
+- **Hybrid search** - regex-based keyword booster normalizes alphanumeric codes (`s304` -> `S304`) and forces the matching chunk to rank first before vector reranking
+- **Hallucination comparison toggle** - side-by-side view shows generic LLM output vs. RAG-verified answer to demonstrate grounding value
+- **Source citation** - every answer renders the retrieved manual chunks alongside the response for explainability
+- **Persisted vector index** - ChromaDB index stored in `chroma_db/` survives restarts without re-ingestion
+- **Synthetic manual generator** - Gemini-powered generator creates a realistic Orbit-5G Base Station troubleshooting guide for demo use
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| Language | Python 3.12+ (uv) |
+| LLM | Gemini 2.0 Flash Lite (`gemini-2.0-flash-lite`) |
+| Embeddings | `models/text-embedding-004` (Google) |
+| Orchestration | LangChain + LangChain-Chroma |
+| Vector DB | ChromaDB (persistent) |
+| Frontend | Streamlit |
+
+## Architecture
 
 ```mermaid
-graph LR
-    subgraph "Data Pipeline"
-        DOC[Manual] --> SPLIT[Header Splitter]
-        SPLIT -- "Chunks" --> INJECT[Context Injector]
-        INJECT -- "Enriched Text" --> VEC[ChromaDB]
-    end
+graph TD
+    A["orbit_5g_guide.md\n(Manual)"] --> B["MarkdownHeaderSplitter\n+ Metadata Injector"]
+    B --> C["text-embedding-004\n(GoogleGenerativeAI)"]
+    C --> D["ChromaDB\n(chroma_db/)"]
 
-    subgraph "Retrieval Engine"
-        QUERY[User Query] --> HYBRID[Hybrid Search]
-        LLM[Gemini 2.0 Flash]
-    end
+    E["User Query\n(Streamlit)"] --> F["Hybrid Search Engine\nregex keyword boost + vector k=10"]
+    D --> F
+    F --> G["Top 3 Chunks"]
+    G --> H["Gemini 2.0 Flash Lite\nstrict-context prompt"]
+    H --> I["Verified Answer\n+ Source Citations"]
+    H --> J["Hallucination Comparison\n(baseline mode)"]
 
-    subgraph "Presentation"
-        UI[Streamlit Dashboard]
-    end
-    
-    HYBRID -- "Keyword Boost" --> VEC
-    VEC -- "Top 3 Chunks" --> LLM
-    LLM -- "Verified Fix" --> UI
-    
-    style INJECT fill:#ff9900,stroke:#333,stroke-width:2px
+    style A fill:#0f3460,color:#fff
+    style B fill:#16213e,color:#fff
+    style C fill:#533483,color:#fff
+    style D fill:#0f3460,color:#fff
+    style E fill:#16213e,color:#fff
+    style F fill:#533483,color:#fff
+    style G fill:#16213e,color:#fff
+    style H fill:#0f3460,color:#fff
+    style I fill:#533483,color:#fff
+    style J fill:#533483,color:#fff
 ```
+
+## Demo
+
+| Mode | Screenshot |
+|------|------------|
+| Standard - verified fix + source citations | ![Standard View](assets/noc_oracle_screenshot.png) |
+| Hallucination Risk - RAG vs. ungrounded baseline | ![Hallucination Risk View](assets/noc_oracle_with_hall_screenshot.png) |
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/) package manager
+- Google Gemini API key (from [Google AI Studio](https://aistudio.google.com/))
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/adityonugrohoid/noc-oracle.git
+   cd noc-oracle
+   ```
+
+2. Install dependencies:
+   ```bash
+   uv sync
+   ```
+
+### Configuration
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and set your API key:
+
+<details>
+<summary>Configuration reference</summary>
+
+```bash
+# Required
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+</details>
+
+## Usage
+
+Run each step once in sequence. The generated manual and ChromaDB index persist across restarts.
+
+```bash
+# 1. Generate the synthetic Orbit-5G troubleshooting manual
+uv run src/generators.py
+
+# 2. Ingest the manual into ChromaDB (context-aware chunking + embedding)
+uv run src/ingestor.py
+
+# 3. Launch the Streamlit dashboard
+uv run streamlit run src/app.py
+```
+
+Open the dashboard, type an alarm log or error code (e.g., `How do I fix S-304 alarm?`), and click **Generate Fix**. Enable **Show Hallucination Risk** to compare RAG output against an ungrounded baseline.
 
 ## Architectural Decisions
 
-### 1. Ingestion: Context-Aware Chunking
-* **Decision:** Implemented `MarkdownHeaderTextSplitter` combined with a custom **Metadata Injector**.
-* **Reasoning:** Standard splitters (e.g., "every 500 chars") often sever the "Error Code" from its "Solution." By parsing Markdown headers and injecting the Parent Header (e.g., "Hardware Alarms - E-101") into the vector content, we ensure the embedding model treats the code and the fix as a single atomic unit.
+### 1. Context-aware chunking via `MarkdownHeaderTextSplitter`
 
-### 2. Retrieval: Hybrid Search (Fuzzy Keyword Boosting)
-* **Decision:** Implemented a regex-based booster layer before the vector search.
-* **Reasoning:** Pure semantic search often fails on specific alphanumeric codes (e.g., `s304` vs `S-304`). We added a logic layer that detects error codes in the query (case-insensitive) and forces the matching chunk to **Rank #1**, achieving high retrieval accuracy even with "sloppy" user input.
+**Decision:** Split the manual on Markdown headers (`#` Title, `##` Category, `###` Error_Code) and inject the parent header text back into each chunk's `page_content` before embedding.
 
-### 3. Trust Architecture: Source Citation & Risk Toggle
-* **Decision:** The UI enforces a split-view layout: "Suggested Fix" (Left) vs. "Source Context" (Right), plus an optional "Hallucination Risk" comparison.
-* **Reasoning:** In Enterprise AI, "Black Box" answers are a liability. By forcing the UI to render the raw retrieved chunks alongside the AI answer, we provide the **Explainability** required for NOC operations.
+**Reasoning:** Standard fixed-size splitters sever the error code from its resolution procedure when a chunk boundary falls in between. By prepending `Category - Error_Code` to every chunk, the embedding model treats the code and the fix as a single atomic unit, ensuring that a query for `E-101` retrieves the hardware alarm resolution rather than an unrelated passage.
 
-## Tech Stack
-* **Runtime:** Python 3.12+ (uv)
-* **LLM:** Google Gemini 2.0 Flash
-* **Orchestration:** LangChain
-* **Vector DB:** ChromaDB (Persistent)
-* **Embeddings:** `models/text-embedding-004`
-* **Frontend:** Streamlit
+### 2. Regex-based keyword boosting in hybrid search
 
-## ⚠️ Known Issues
-**Google Generative AI SDK Deprecation:**  
-The `google-generativeai` package is deprecated and support ended as of January 2025. Migration to `google-genai` is required before **June 24, 2026**. The current implementation works but will need updating. See [migration guide](https://ai.google.dev/gemini-api/docs/migrate) for details.
+**Decision:** Before returning similarity search results, extract error code patterns from the query (`\b[A-Za-z]+-?\d+\b`), normalize both query codes and document content (strip hyphens, uppercase), and promote matching documents to the front of the result list.
 
-## Quick Start
+**Reasoning:** Pure semantic search mishandles specific alphanumeric codes. `s304` and `S-304` produce different embeddings. The regex booster bridges this gap without a separate BM25 index, keeping the dependency surface minimal while ensuring exact code matches rank first.
 
-```bash
-# 1. Install dependencies
-uv sync
+### 3. Strict-context prompt with hallucination toggle
 
-# 2. Setup Secrets
-cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY=...
+**Decision:** The LLM prompt instructs the model to answer exclusively from the retrieved context chunks. The UI exposes a toggle that calls `get_baseline_response` (no context) alongside the RAG answer.
 
-# 3. Generate Synthetic Manual
-# Creates a realistic telecom troubleshooting manual with error codes,
-# symptoms, and verified resolution procedures
-uv run src/generators.py
+**Reasoning:** In NOC operations, an unattributed "confident lie" is a safety liability. Forcing source citations into every answer provides explainability. The hallucination toggle makes the RAG value proposition visible rather than implicit, useful for demos and onboarding.
 
-# 4. Ingest & Index
-# Processes the manual using context-aware chunking and stores
-# embeddings in ChromaDB for semantic retrieval
-uv run src/ingestor.py
+## Project Structure
 
-# 5. Run the Dashboard
-uv run streamlit run src/app.py
+```
+noc-oracle/
+├── src/
+│   ├── app.py              # Streamlit dashboard
+│   ├── engine.py           # NOCEngine: hybrid search + Gemini generation
+│   ├── ingestor.py         # Manual ingestor: chunking, embedding, ChromaDB write
+│   ├── generators.py       # Synthetic manual generator via Gemini
+│   └── __init__.py
+│
+├── tests/
+│   ├── test_engine.py      # Unit tests for NOCEngine (hybrid search, retrieval)
+│   ├── test_ingestor.py    # Ingestor tests
+│   └── test_generators.py  # Generator tests
+│
+├── data/
+│   └── manuals/
+│       └── orbit_5g_guide.md   # Generated troubleshooting manual
+│
+├── chroma_db/              # Persisted ChromaDB vector index (gitignored)
+├── assets/                 # Dashboard screenshots
+├── .env.example            # Configuration template
+└── pyproject.toml          # Project metadata and dependencies (uv)
 ```
 
 ## Testing
 
 ```bash
-# Install development dependencies
+# Install dev dependencies
 uv sync --extra dev
 
 # Run all tests
-pytest tests/
-
-# Run with verbose output
 pytest tests/ -v
+
+# Run a specific module
+pytest tests/test_engine.py -v
 ```
 
-## Notable Code
+## Known Issues
 
-This repository demonstrates sophisticated RAG implementation patterns. See [NOTABLE_CODE.md](NOTABLE_CODE.md) for detailed code examples highlighting:
+| Issue | Impact | Workaround |
+|-------|--------|------------|
+| `google-generativeai` SDK deprecated (support ended Jan 2025) | Will break after June 24, 2026 | Migrate to `google-genai`; see the [migration guide](https://ai.google.dev/gemini-api/docs/migrate) |
 
-- Hybrid search with keyword boosting for exact code matching
-- Context-aware chunking preserving error-solution relationships
-- Strict context enforcement preventing LLM hallucination
+## Related Projects
+
+| Project | Description |
+|---------|-------------|
+| [incident-commander](https://github.com/adityonugrohoid/incident-commander) | AI-driven incident triage and escalation for NOC workflows |
+| [net-ops-agent](https://github.com/adityonugrohoid/net-ops-agent) | Agentic network operations assistant in the TRINITY suite |
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the [MIT License](LICENSE).
 
 ## Author
 
-**Adityo Nugroho**  
-- Portfolio: https://adityonugrohoid.github.io  
-- GitHub: https://github.com/adityonugrohoid  
-- LinkedIn: https://www.linkedin.com/in/adityonugrohoid/
+**Adityo Nugroho** ([@adityonugrohoid](https://github.com/adityonugrohoid))
